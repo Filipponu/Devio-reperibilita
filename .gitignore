@@ -1,0 +1,16 @@
+# Gradle / Android
+.gradle/
+build/
+/app/build/
+local.properties
+.kotlin/
+captures/
+*.iml
+.idea/
+.DS_Store
+
+# Chiavi di firma: MAI nella repository
+*.jks
+*.keystore
+keystore.properties
+keystore-base64.txt

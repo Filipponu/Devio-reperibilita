@@ -1,0 +1,81 @@
+name: Compila APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    name: APK release firmato
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Scarica il codice
+        uses: actions/checkout@v5
+
+      - name: Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Gradle (con cache)
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Test
+        run: ./gradlew --no-daemon testDebugUnitTest
+
+      - name: Prepara la chiave di firma dai GitHub Secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          mancanti=""
+          for s in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!s}" ]; then mancanti="$mancanti $s"; fi
+          done
+          if [ -n "$mancanti" ]; then
+            echo "SECRETS_MANCANTI=$mancanti" >> "$GITHUB_ENV"
+            echo "::warning title=Firma::Secrets mancanti:$mancanti. Compilo comunque per controllare il codice, ma l'APK non sarà pubblicato."
+          else
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/deviazione-release.jks"
+            echo "KEYSTORE_FILE=$RUNNER_TEMP/deviazione-release.jks" >> "$GITHUB_ENV"
+          fi
+
+      - name: Compila e firma l'APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Ferma se mancano i secrets
+        if: env.SECRETS_MANCANTI != ''
+        run: |
+          echo "::error title=Secrets mancanti::Il codice compila, ma per firmare l'APK aggiungi in Settings → Secrets and variables → Actions:${SECRETS_MANCANTI} (vedi README, sezione 'Firma dell'APK'). Poi Actions → Compila APK → Run workflow."
+          exit 1
+
+      - name: Rinomina l'APK
+        run: |
+          mkdir -p uscita
+          cp app/build/outputs/apk/release/app-release.apk "uscita/DeviazioneReperibilita-${{ github.run_number }}.apk"
+          rm -f "$RUNNER_TEMP/deviazione-release.jks"
+
+      - name: Pubblica l'APK come artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeviazioneReperibilita-${{ github.run_number }}
+          path: uscita/*.apk
+          retention-days: 90
+
+      - name: Riepilogo
+        run: |
+          echo "### ✅ APK pronto" >> "$GITHUB_STEP_SUMMARY"
+          echo "Scarica **DeviazioneReperibilita-${{ github.run_number }}** dalla sezione *Artifacts* di questa pagina e installalo sul telefono (vedi README)." >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Deviazione Reperibilità</string>
+    <string name="widget_nome">Reperibilità</string>
+    <string name="widget_descrizione">Chi è di turno e stato della deviazione</string>
+</resources>
