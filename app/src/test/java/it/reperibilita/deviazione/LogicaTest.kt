@@ -7,6 +7,8 @@ import it.reperibilita.deviazione.dominio.Nomi
 import it.reperibilita.deviazione.dominio.TipoTurno
 import it.reperibilita.deviazione.dominio.ZONA_ROMA
 import it.reperibilita.deviazione.excel.Foglio
+import it.reperibilita.deviazione.excel.FoglioTurni
+import it.reperibilita.deviazione.excel.PreparaAnteprima
 import it.reperibilita.deviazione.excel.LettoreTurni
 import it.reperibilita.deviazione.excel.Validatore
 import it.reperibilita.deviazione.telefonia.InterpreteRisposta
@@ -141,10 +143,63 @@ class LogicaTest {
         assertEquals(1L, Calendario.corrente(turni, ora)?.id)
         assertEquals(ms("2026-11-12T20:00"), Calendario.prossimoConfine(turni, ora))
         val numero = { t: Turno -> Nomi.trova(t.nome, rubrica)?.telefono }
-        assertEquals(ms("2026-11-13T08:00"), Calendario.fineBlocco(turni, turni[0], numero))
+        assertEquals(ms("2026-11-13T08:00"), Calendario.fineBlocco(turni, ora, numero))
+        assertEquals(ms("2026-11-12T08:00"), Calendario.inizioBlocco(turni, ms("2026-11-13T02:00"), numero))
         assertEquals(3L, Calendario.successivo(turni, ms("2026-11-13T08:00"))?.id)
         assertNull(Calendario.corrente(turni, ms("2026-11-13T21:00")))
         assertNull(Calendario.prossimoConfine(turni, ms("2026-11-13T21:00")))
+    }
+
+    @Test
+    fun cambiManuali() {
+        val numero = { t: Turno -> Nomi.trova(t.nome, rubrica)?.telefono }
+        val excel = listOf(
+            turno(1, "BINJAKU ERMIR", "2026-11-12T08:00", "2026-11-12T20:00"),
+            turno(2, "CAVALLARI FRANCESCA", "2026-11-12T20:00", "2026-11-13T08:00", "N"),
+        )
+        // NUCERA copre BINJAKU dalle 14 alle 20 (cambio a metà turno)
+        val parziale = turno(10, "NUCERA FILIPPO", "2026-11-12T14:00", "2026-11-12T20:00", "M").copy(manuale = true)
+        val turni = excel + parziale
+        assertEquals("BINJAKU ERMIR", Calendario.corrente(turni, ms("2026-11-12T10:00"))?.nome)
+        assertEquals(ms("2026-11-12T14:00"), Calendario.prossimoConfine(turni, ms("2026-11-12T10:00")))
+        assertEquals(ms("2026-11-12T14:00"), Calendario.fineBlocco(turni, ms("2026-11-12T10:00"), numero))
+        assertEquals("NUCERA FILIPPO", Calendario.corrente(turni, ms("2026-11-12T15:00"))?.nome)
+        assertEquals(ms("2026-11-12T14:00"), Calendario.inizioBlocco(turni, ms("2026-11-12T15:00"), numero))
+        assertEquals(ms("2026-11-12T20:00"), Calendario.fineBlocco(turni, ms("2026-11-12T15:00"), numero))
+        assertEquals("CAVALLARI FRANCESCA", Calendario.successivo(turni, ms("2026-11-12T20:00"))?.nome)
+        assertNull(Calendario.sostituitoDa(turni, excel[0]))
+        assertEquals(listOf(parziale), Calendario.cambiParziali(turni, excel[0]))
+
+        // Cambio dell'intera notte: CAVALLARI sostituita da SOLA, nessuna sovrapposizione segnalata
+        val notte = turno(11, "SOLA GIADA", "2026-11-12T20:00", "2026-11-13T08:00", "M").copy(manuale = true)
+        val conNotte = turni + notte
+        assertEquals("SOLA GIADA", Calendario.corrente(conNotte, ms("2026-11-12T23:00"))?.nome)
+        assertEquals(notte, Calendario.sostituitoDa(conNotte, excel[1]))
+        val analisi = Validatore.analizzaConManuali(conNotte, ms("2026-11-12T08:00"))
+        assertTrue(analisi.sovrapposizioni.isEmpty())
+        assertTrue(analisi.buchi.isEmpty())
+
+        // Un cambio manuale riempie anche un buco dell'Excel
+        val conBuco = listOf(excel[0], turno(3, "SOLA GIADA", "2026-11-13T08:00", "2026-11-13T20:00"))
+        assertEquals(1, Validatore.analizzaConManuali(conBuco, ms("2026-11-12T08:00")).buchi.size)
+        val coperto = conBuco + turno(12, "FORNI JANA", "2026-11-12T20:00", "2026-11-13T08:00", "M").copy(manuale = true)
+        assertTrue(Validatore.analizzaConManuali(coperto, ms("2026-11-12T08:00")).buchi.isEmpty())
+    }
+
+    @Test
+    fun anteprimaConservaICambiManuali() {
+        val ora = ms("2026-11-11T12:00")
+        val nov = YearMonth.of(2026, 11)
+        val nuovi = listOf(turno(0, "BINJAKU ERMIR", "2026-11-12T08:00", "2026-11-12T20:00"))
+        val foglio = FoglioTurni("NOVEMBRE 2026", nov, nuovi, emptyMap())
+        val esistenti = listOf(
+            turno(1, "SOLA GIADA", "2026-11-12T08:00", "2026-11-12T20:00"),
+            turno(2, "NUCERA FILIPPO", "2026-11-12T10:00", "2026-11-12T12:00", "M").copy(manuale = true),
+        )
+        val a = PreparaAnteprima.prepara("f.xlsx", listOf(foglio), esistenti, rubrica, ora)
+        assertEquals(listOf("2026-11"), a.mesiDaSostituire)
+        assertEquals(1, a.cambiManuali.size)
+        assertTrue(a.analisi.sovrapposizioni.isEmpty())
     }
 
     @Test

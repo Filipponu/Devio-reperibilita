@@ -63,8 +63,8 @@ object CalcolaSituazione {
         val numeroDi = { t: Turno -> Nomi.trova(t.nome, colleghi)?.telefono }
         val turno = Calendario.corrente(turni, ora)
         val collega = turno?.let { Nomi.trova(it.nome, colleghi) }
-        val fine = turno?.let { Calendario.fineBlocco(turni, it, numeroDi) }
-        val inizio = turno?.let { inizioBlocco(turni, it, numeroDi) }
+        val fine = Calendario.fineBlocco(turni, ora, numeroDi)
+        val inizio = Calendario.inizioBlocco(turni, ora, numeroDi)
         val prossimo = when {
             fine != null -> Calendario.successivo(turni, fine)
             else -> turni.filter { it.inizio > ora }.minByOrNull { it.inizio }
@@ -82,16 +82,5 @@ object CalcolaSituazione {
             stato = stato,
             preferenze = preferenze,
         )
-    }
-
-    private fun inizioBlocco(turni: List<Turno>, attuale: Turno, numeroDi: (Turno) -> String?): Long {
-        val numero = numeroDi(attuale) ?: return attuale.inizio
-        var inizio = attuale.inizio
-        while (true) {
-            val precedente = turni.filter { it.fine == inizio && it.inizio < inizio }.maxByOrNull { it.inizio } ?: break
-            if (!Nomi.stessoNumero(numeroDi(precedente), numero)) break
-            inizio = precedente.inizio
-        }
-        return inizio
     }
 }

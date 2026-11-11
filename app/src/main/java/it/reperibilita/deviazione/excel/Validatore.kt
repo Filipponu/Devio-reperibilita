@@ -15,6 +15,16 @@ data class Analisi(
 
 /** Controlla buchi e sovrapposizioni nei turni che finiscono dopo [da]. */
 object Validatore {
+    /**
+     * Come [analizza], ma i cambi manuali coprono i buchi senza contare come sovrapposizioni
+     * (per definizione si sovrappongono al turno che sostituiscono).
+     */
+    fun analizzaConManuali(turni: List<Turno>, da: Long): Analisi {
+        val tutti = analizza(turni, da)
+        val soloExcel = analizza(turni.filter { !it.manuale }, da)
+        return Analisi(tutti.buchi, soloExcel.sovrapposizioni, tutti.fineTurni)
+    }
+
     fun analizza(turni: List<Turno>, da: Long): Analisi {
         val rilevanti = turni.filter { it.fine > da }.sortedWith(compareBy({ it.inizio }, { it.fine }))
         if (rilevanti.isEmpty()) return Analisi(emptyList(), emptyList(), null)

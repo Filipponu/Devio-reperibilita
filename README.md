@@ -16,6 +16,8 @@ App Android personale che **devia in automatico le chiamate del telefono di repe
 <img src="docs/schermate/import.png" width="200" alt="Anteprima importazione Excel">
 <img src="docs/schermate/rubrica.png" width="200" alt="Rubrica">
 <img src="docs/schermate/allarme.png" width="200" alt="Allarme a tutto schermo">
+<img src="docs/schermate/turni_cambio.png" width="200" alt="Timeline con cambi manuali">
+<img src="docs/schermate/dialog_cambio.png" width="200" alt="Cambio turno">
 </p>
 
 > ⚠️ La repository contiene i numeri della rubrica iniziale e un file Excel di prova con i nomi dei colleghi: tienila **privata** (GitHub → *Settings* → *General* → *Danger Zone* → *Change repository visibility*).
@@ -145,7 +147,7 @@ La card mostra chi è di turno (nome, iniziali, numero), da quando e fino a quan
 - **Disattiva**: `##21#`; sospende l'automatismo finché non premi *Applica ora*.
 - **Importa Excel**: carica il file dei turni.
 
-**Altre schede**: *Turni* (timeline con ☀️ giorno, 🌙 notte, **24** ore), *Rubrica* (aggiungi, modifica, elimina, importa dai contatti), *Registro* (ogni deviazione con data, ora, numero ed esito).
+**Altre schede**: *Turni* (timeline con ☀️ giorno, 🌙 notte, **24** ore, ⇄ cambi manuali), *Rubrica* (aggiungi, modifica, elimina, importa dai contatti), *Registro* (ogni deviazione con data, ora, numero ed esito).
 
 **Notifiche**
 - Fissa e silenziosa: chi è di turno e fino a quando.
@@ -156,6 +158,13 @@ La card mostra chi è di turno (nome, iniziali, numero), da quando e fino a quan
 - Schermata rossa a tutto schermo, suono forte in loop sul canale *sveglia* (suona anche in silenzioso e con Non disturbare) e vibrazione continua.
 - Pulsanti **Riprova deviazione** e **Ho visto, spegni**.
 - Se non lo spegni, si ripete **ogni 5 minuti** finché la deviazione non risulta riuscita.
+
+**Cambi turno all'ultimo momento** (senza toccare il file Excel)
+- **Stato → Cambio turno**: scegli chi copre e l'orario (di solito da adesso alla fine del turno). La deviazione passa subito al nuovo collega e alla fine torna da sola a quello previsto dall'Excel.
+- **Turni**: tocca un turno per sostituirlo tutto o solo in parte (per esempio dalle 14 alle 20). Con **⊕** in alto aggiungi un turno nuovo, utile anche per coprire un buco.
+- Nella timeline i cambi hanno l'icona ⇄ e il turno sostituito diventa grigio. Tocca un cambio per annullarlo.
+- Se reimporti l'Excel, i cambi fatti a mano restano validi. Nell'anteprima puoi scegliere di eliminarli, se il nuovo file li contiene già.
+- Ogni cambio viene scritto nel registro.
 
 **Widget**: tieni premuto sulla schermata Home → *Widget* → *Deviazione Reperibilità*.
 

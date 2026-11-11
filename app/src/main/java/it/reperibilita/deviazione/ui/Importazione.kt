@@ -37,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -108,13 +109,14 @@ fun SchermataImport(
     stato: StatoImport,
     colleghi: List<Collega>,
     onAnnulla: () -> Unit,
-    onSalva: () -> Unit,
+    onSalva: (mantieniCambi: Boolean) -> Unit,
     onAltroFile: () -> Unit,
     onAggiungiCollega: (Collega) -> Unit,
 ) {
     BackHandler(onBack = onAnnulla)
     var daAggiungere by remember { mutableStateOf<String?>(null) }
     var confermaSalva by remember { mutableStateOf(false) }
+    var mantieniCambi by remember { mutableStateOf(true) }
     val anteprima = (stato as? StatoImport.Pronta)?.anteprima
 
     Scaffold(
@@ -139,7 +141,7 @@ fun SchermataImport(
                         Button(
                             onClick = {
                                 if (anteprima.analisi.buchi.isNotEmpty() || anteprima.analisi.sovrapposizioni.isNotEmpty()) confermaSalva = true
-                                else onSalva()
+                                else onSalva(mantieniCambi)
                             },
                             enabled = !anteprima.niente && anteprima.nomiSconosciuti.isEmpty(),
                             modifier = Modifier.weight(1.4f).height(56.dp),
@@ -172,9 +174,11 @@ fun SchermataImport(
                 Spacer(Modifier.height(20.dp))
                 Button(onClick = onAltroFile) { Text("Scegli un altro file") }
             }
-            is StatoImport.Pronta -> ContenutoAnteprima(stato.anteprima, colleghi, PaddingValues(
-                start = 16.dp, end = 16.dp, top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding() + 16.dp,
-            )) { daAggiungere = it }
+            is StatoImport.Pronta -> ContenutoAnteprima(
+                stato.anteprima, colleghi,
+                PaddingValues(start = 16.dp, end = 16.dp, top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding() + 16.dp),
+                mantieniCambi, { mantieniCambi = it },
+            ) { daAggiungere = it }
         }
     }
 
@@ -199,14 +203,21 @@ fun SchermataImport(
                         "Puoi salvare ora e caricare il file corretto in seguito: i mesi reimportati vengono sostituiti.",
                 )
             },
-            confirmButton = { Button(onClick = { confermaSalva = false; onSalva() }) { Text("Salva") } },
+            confirmButton = { Button(onClick = { confermaSalva = false; onSalva(mantieniCambi) }) { Text("Salva") } },
             dismissButton = { TextButton(onClick = { confermaSalva = false }) { Text("Annulla") } },
         )
     }
 }
 
 @Composable
-private fun ContenutoAnteprima(a: Anteprima, colleghi: List<Collega>, padding: PaddingValues, onAggiungi: (String) -> Unit) {
+private fun ContenutoAnteprima(
+    a: Anteprima,
+    colleghi: List<Collega>,
+    padding: PaddingValues,
+    mantieniCambi: Boolean,
+    onMantieniCambi: (Boolean) -> Unit,
+    onAggiungi: (String) -> Unit,
+) {
     val verde = LocalTavolozza.current.verde.inizio
     val turniFuturi = a.turniDaSalvare.filter { it.fine > System.currentTimeMillis() }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) {
@@ -275,6 +286,29 @@ private fun ContenutoAnteprima(a: Anteprima, colleghi: List<Collega>, padding: P
                         if (ignorati.isNotEmpty()) "• Valori ignorati: " + ignorati.entries.joinToString { "${it.key} (${it.value})" } else null,
                     ),
                 )
+            }
+        }
+        if (a.cambiManuali.isNotEmpty()) {
+            item {
+                TitoloSezione("Cambi fatti a mano")
+                Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.tertiaryContainer, modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp)) {
+                        a.cambiManuali.forEach { t ->
+                            Text(
+                                "• ${Nomi.trova(t.nome, colleghi)?.cognome ?: t.nome}: ${Formati.giornoOra(t.inizio)} → ${Formati.giornoOra(t.fine)}",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                if (mantieniCambi) "Restano validi sopra il nuovo file" else "Verranno eliminati: vale solo il nuovo file",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Switch(checked = mantieniCambi, onCheckedChange = onMantieniCambi)
+                        }
+                    }
+                }
             }
         }
         if (turniFuturi.isNotEmpty()) {

@@ -34,6 +34,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import it.reperibilita.deviazione.data.Turno
+
+/** Richiesta di cambio: [turno] da sostituire, oppure null per aggiungere un turno nuovo. */
+private data class RichiestaCambio(val turno: Turno?)
 
 private data class Scheda(val rotta: String, val etichetta: String, val icona: ImageVector)
 
@@ -64,6 +68,8 @@ fun AppNav(vm: AppViewModel) {
     val importazione by vm.importazione.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     var prova by remember { mutableStateOf(false) }
+    /** Dialog di cambio turno: null = chiuso. */
+    var cambio by remember { mutableStateOf<RichiestaCambio?>(null) }
 
     val sceltaFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) vm.caricaExcel(uri)
@@ -124,13 +130,19 @@ fun AppNav(vm: AppViewModel) {
                     onDisattiva = vm::disattiva,
                     onImporta = { importa() },
                     onProva = { prova = true },
+                    onCambio = { cambio = RichiestaCambio(it) },
                     onTuttiITurni = { nav.navigate("turni") { launchSingleTop = true } },
                     onTuttoIlRegistro = { nav.navigate("registro") { launchSingleTop = true } },
                     onImpostazioni = { nav.navigate("impostazioni") { launchSingleTop = true } },
                 )
             }
             composable("turni") {
-                SchermataTurni(turni, colleghi, situazione?.ora ?: System.currentTimeMillis(), onImporta = { importa() })
+                SchermataTurni(
+                    turni, colleghi, situazione?.ora ?: System.currentTimeMillis(),
+                    onImporta = { importa() },
+                    onCambio = { cambio = RichiestaCambio(it) },
+                    onEliminaCambio = { vm.eliminaCambio(it) },
+                )
             }
             composable("rubrica") {
                 SchermataRubrica(colleghi, onSalva = { vm.salvaCollega(it) }, onElimina = { vm.eliminaCollega(it) })
@@ -157,11 +169,28 @@ fun AppNav(vm: AppViewModel) {
                         vm.annullaImport()
                         nav.popBackStack()
                     },
-                    onSalva = { vm.salvaImport { nav.popBackStack() } },
+                    onSalva = { mantieni -> vm.salvaImport(mantieni) { nav.popBackStack() } },
                     onAltroFile = { importa() },
                     onAggiungiCollega = { vm.salvaCollega(it) },
                 )
             }
+        }
+    }
+
+    cambio?.let { (turno) ->
+        if (colleghi.isEmpty()) {
+            LaunchedEffect(Unit) { vm.messaggio("Aggiungi prima almeno un collega in Rubrica"); cambio = null }
+        } else {
+            DialogCambioTurno(
+                turno = turno,
+                colleghi = colleghi,
+                ora = System.currentTimeMillis(),
+                onSalva = { collega, inizio, fine ->
+                    vm.salvaCambio(collega, inizio, fine, turno)
+                    cambio = null
+                },
+                onChiudi = { cambio = null },
+            )
         }
     }
 

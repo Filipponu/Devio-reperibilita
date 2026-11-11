@@ -1,5 +1,6 @@
 package it.reperibilita.deviazione.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -16,6 +17,8 @@ data class Turno(
     val codice: String,
     /** Mese del foglio di provenienza, formato "2026-11". */
     val mese: String,
+    /** Cambio inserito a mano nell'app: ha la precedenza sui turni dell'Excel e sopravvive alle reimportazioni. */
+    @ColumnInfo(defaultValue = "0") val manuale: Boolean = false,
 )
 
 /** Un collega della rubrica. */
@@ -27,7 +30,7 @@ data class Collega(
     val telefono: String,
 )
 
-enum class TipoEvento { ATTIVAZIONE, DISATTIVAZIONE, VERIFICA, PROVA_CHIAMATA, IMPORTAZIONE, ALLARME, INFO }
+enum class TipoEvento { ATTIVAZIONE, DISATTIVAZIONE, VERIFICA, PROVA_CHIAMATA, IMPORTAZIONE, CAMBIO_TURNO, ALLARME, INFO }
 
 enum class Esito { CONFERMATA, NON_VERIFICATA, ERRORE, RIUSCITA, NON_RIUSCITA, INFO }
 

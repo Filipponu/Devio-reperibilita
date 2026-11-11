@@ -39,6 +39,7 @@ import androidx.compose.material.icons.rounded.PhoneForwarded
 import androidx.compose.material.icons.rounded.PauseCircle
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Science
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.UploadFile
 import androidx.compose.material.icons.rounded.VerifiedUser
@@ -97,6 +98,7 @@ fun SchermataHome(
     onDisattiva: () -> Unit,
     onImporta: () -> Unit,
     onProva: () -> Unit,
+    onCambio: (Turno?) -> Unit,
     onTuttiITurni: () -> Unit,
     onTuttoIlRegistro: () -> Unit,
     onImpostazioni: () -> Unit,
@@ -171,10 +173,17 @@ fun SchermataHome(
                     }
                     PulsanteGrande("Importa Excel", Icons.Rounded.UploadFile, Modifier.weight(1f), onClick = onImporta)
                 }
-                TextButton(onClick = onProva, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                    Icon(Icons.Rounded.Science, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Prova deviazione")
+                Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    TextButton(onClick = { onCambio(situazione?.turno) }) {
+                        Icon(Icons.Rounded.SwapHoriz, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Cambio turno")
+                    }
+                    TextButton(onClick = onProva) {
+                        Icon(Icons.Rounded.Science, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Prova deviazione")
+                    }
                 }
             }
 
@@ -193,9 +202,12 @@ fun SchermataHome(
                     if (i == 0 || Formati.zdt(t.inizio).toLocalDate() != Formati.zdt(prossimi[i - 1].inizio).toLocalDate()) {
                         IntestazioneGiorno(t.inizio)
                     }
+                    val info = infoRiga(turni, t, colleghi)
                     RigaTimeline(
                         t, Nomi.trova(t.nome, colleghi), inCorso = t.id == corrente?.id,
                         primo = i == 0, ultimo = i == prossimi.lastIndex,
+                        sostituitoDa = info.sostituitoDa,
+                        notaParziale = info.notaParziale,
                     )
                 }
             }

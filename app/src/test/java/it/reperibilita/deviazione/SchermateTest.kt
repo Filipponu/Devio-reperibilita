@@ -24,6 +24,8 @@ import it.reperibilita.deviazione.excel.XlsxReader
 import it.reperibilita.deviazione.ui.SchermataHome
 import it.reperibilita.deviazione.ui.SchermataImport
 import it.reperibilita.deviazione.ui.SchermataRubrica
+import it.reperibilita.deviazione.ui.SchermataTurni
+import it.reperibilita.deviazione.ui.DialogCambioTurno
 import it.reperibilita.deviazione.ui.StatoImport
 import it.reperibilita.deviazione.ui.TemaApp
 import org.junit.Assume.assumeTrue
@@ -81,7 +83,7 @@ class SchermateTest {
             TemaApp {
                 SchermataHome(
                     situazione, occupato, turni, colleghi, registro,
-                    {}, {}, {}, {}, {}, {}, {}, {},
+                    {}, {}, {}, {}, {}, {}, {}, {}, {},
                 )
             }
         }
@@ -125,6 +127,31 @@ class SchermateTest {
         }
         compose.mainClock.advanceTimeBy(300)
         compose.onRoot().captureRoboImage("$cartella/allarme.png")
+    }
+
+    @Test
+    fun turniConCambio() {
+        val cambio = turni.first { it.nome.startsWith("CAVALLARI") && it.inizio >= ms("2026-11-12T20:00") }
+            .let { it.copy(id = 999, nome = "NUCERA FILIPPO", codice = "M", manuale = true) }
+        val parziale = turni.first { it.inizio == ms("2026-11-13T08:00") }
+            .let { it.copy(id = 998, nome = "FORNI JANA", codice = "M", manuale = true, inizio = ms("2026-11-13T14:00")) }
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            TemaApp { SchermataTurni(turni + cambio + parziale, colleghi, ms("2026-11-12T10:00"), {}, {}, {}) }
+        }
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.onRoot().captureRoboImage("$cartella/turni_cambio.png")
+    }
+
+    @Test
+    fun dialogCambio() {
+        val turno = turni.first { it.inizio == ms("2026-11-12T08:00") }
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            TemaApp { DialogCambioTurno(turno, colleghi, ms("2026-11-12T10:35"), { _, _, _ -> }, {}) }
+        }
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.onRoot().captureRoboImage("$cartella/dialog_cambio.png")
     }
 
     @Test

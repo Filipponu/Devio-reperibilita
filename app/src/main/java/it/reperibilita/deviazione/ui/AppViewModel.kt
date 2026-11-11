@@ -112,6 +112,36 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun provaAllarme() = AllarmeService.avvia(getApplication(), "Questa è solo una prova.", prova = true)
 
+    // --- Cambi turno manuali ---
+
+    fun salvaCambio(collega: Collega, inizio: Long, fine: Long, sostituito: Turno?) = viewModelScope.launch {
+        val nome = Nomi.pulisciNomeExcel("${collega.cognome} ${collega.nome}")
+        val mese = java.time.YearMonth.from(Formati.zdt(inizio)).toString()
+        c.db.turni().inserisciUno(Turno(inizio = inizio, fine = fine, nome = nome, codice = "M", mese = mese, manuale = true))
+        val dettaglio = "${collega.cognome} dal ${Formati.giornoOra(inizio)} al ${Formati.giornoOra(fine)}" +
+            (sostituito?.let { " al posto di ${Nomi.trova(it.nome, colleghi.value)?.cognome ?: it.nome}" } ?: "")
+        c.motore.registra(TipoEvento.CAMBIO_TURNO, Esito.INFO, collega.telefono, collega.cognome, dettaglio)
+        dopoModificaTurni()
+        messaggio("Cambio salvato: $dettaglio")
+    }
+
+    fun eliminaCambio(turno: Turno) = viewModelScope.launch {
+        c.db.turni().elimina(turno)
+        c.motore.registra(
+            TipoEvento.CAMBIO_TURNO, Esito.INFO, null, null,
+            "Annullato il cambio ${turno.nome} dal ${Formati.giornoOra(turno.inizio)} al ${Formati.giornoOra(turno.fine)}",
+        )
+        dopoModificaTurni()
+        messaggio("Cambio annullato: torna a valere il file Excel")
+    }
+
+    /** Dopo ogni modifica dei turni: riprogramma e, se è cambiato chi è di turno adesso, applica subito. */
+    private suspend fun dopoModificaTurni() {
+        c.pianificatore.programma()
+        c.motore.aggiornaNotificheEWidget()
+        if (c.motore.serveRiapplicare()) DeviazioneService.avvia(getApplication(), DeviazioneService.APPLICA)
+    }
+
     // --- Rubrica ---
 
     fun salvaCollega(collega: Collega) = viewModelScope.launch {
@@ -179,10 +209,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _import.value = StatoImport.Nessuno
     }
 
-    fun salvaImport(onFatto: () -> Unit) = viewModelScope.launch {
+    fun salvaImport(mantieniCambi: Boolean, onFatto: () -> Unit) = viewModelScope.launch {
         val a = (_import.value as? StatoImport.Pronta)?.anteprima ?: return@launch
         val ora = System.currentTimeMillis()
-        c.db.turni().sostituisciMesi(a.mesiDaSostituire, a.turniDaSalvare)
+        c.db.turni().sostituisciMesi(a.mesiDaSostituire, a.turniDaSalvare, eliminaManuali = !mantieniCambi)
         c.db.turni().eliminaPrimaDi(ora - 62L * 24 * 3_600_000)
         c.db.registro().eliminaPrimaDi(ora - 400L * 24 * 3_600_000)
         val mesi = a.mesi.filter { it.daImportare }.joinToString { it.foglio.nomeFoglio }
@@ -195,9 +225,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             "${a.turniDaSalvare.size} turni ($mesi) da ${a.nomeFile}" + if (problemi.isNotEmpty()) " – $problemi" else "",
         )
         c.impostazioni.impostaAvvisoSenzaTurno(0)
-        c.pianificatore.programma()
-        c.motore.aggiornaNotificheEWidget()
-        if (c.motore.serveRiapplicare()) DeviazioneService.avvia(getApplication(), DeviazioneService.APPLICA)
+        dopoModificaTurni()
         _import.value = StatoImport.Nessuno
         val fino = a.analisi.fineTurni?.let { " · turni fino a ${Formati.giornoOra(it)}" }.orEmpty()
         messaggio("Salvati ${a.turniDaSalvare.size} turni$fino")

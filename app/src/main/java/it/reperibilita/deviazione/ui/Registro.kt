@@ -45,6 +45,7 @@ private fun titoloEvento(e: EventoRegistro): String = when (e.tipo) {
     TipoEvento.VERIFICA -> "Verifica stato (*#21#)"
     TipoEvento.PROVA_CHIAMATA -> if (e.esito == Esito.RIUSCITA) "Prova di chiamata riuscita" else "Prova di chiamata NON riuscita"
     TipoEvento.IMPORTAZIONE -> "Turni importati"
+    TipoEvento.CAMBIO_TURNO -> "Cambio turno manuale"
     TipoEvento.ALLARME -> "Allarme"
     TipoEvento.INFO -> "Informazione"
 }

@@ -45,6 +45,33 @@ class MotoreTest {
     fun fine() = Dispatchers.resetMain()
 
     @Test
+    fun migrazioneDallaVersione1() {
+        val app = ApplicationProvider.getApplicationContext<App>()
+        app.contenitore.db.close()
+        app.deleteDatabase("deviazione.db")
+        // Database come lo creava la versione 1 dell'app, con dentro un turno e la rubrica
+        app.openOrCreateDatabase("deviazione.db", 0, null).use { db ->
+            db.execSQL("CREATE TABLE IF NOT EXISTS `turni` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `inizio` INTEGER NOT NULL, `fine` INTEGER NOT NULL, `nome` TEXT NOT NULL, `codice` TEXT NOT NULL, `mese` TEXT NOT NULL)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `colleghi` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `cognome` TEXT NOT NULL, `nome` TEXT NOT NULL, `telefono` TEXT NOT NULL)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `registro` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `quando` INTEGER NOT NULL, `tipo` TEXT NOT NULL, `esito` TEXT NOT NULL, `numero` TEXT, `nome` TEXT, `dettaglio` TEXT)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_turni_inizio` ON `turni` (`inizio`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_turni_mese` ON `turni` (`mese`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_registro_quando` ON `registro` (`quando`)")
+            db.execSQL("INSERT INTO turni (inizio, fine, nome, codice, mese) VALUES (1, 2, 'SOLA GIADA', 'G', '2026-11')")
+            db.execSQL("INSERT INTO colleghi (cognome, nome, telefono) VALUES ('SOLA', 'Giada', '3423978822')")
+            db.version = 1
+        }
+        val nuovo = AppDatabase.crea(app)
+        kotlinx.coroutines.runBlocking {
+            val turni = kotlinx.coroutines.withContext(Dispatchers.IO) { nuovo.turni().tutti() }
+            assertEquals(1, turni.size)
+            assertFalse(turni.first().manuale)
+            assertEquals("SOLA", kotlinx.coroutines.withContext(Dispatchers.IO) { nuovo.colleghi().tutti() }.single().cognome)
+        }
+        nuovo.close()
+    }
+
+    @Test
     fun flussoCompleto() = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         val app = ApplicationProvider.getApplicationContext<App>()
@@ -88,9 +115,9 @@ class MotoreTest {
         // Notifiche: fissa di stato e cambio turno
         val nm = shadowOf(app.getSystemService(NotificationManager::class.java))
         assertNotNull(nm.getNotification(Notifiche.ID_STATO))
-        val cambio = nm.getNotification(Notifiche.ID_CAMBIO)
-        assertNotNull(cambio)
-        assertTrue(cambio.extras.getString("android.title")!!.startsWith("Deviazione attiva → BINJAKU (3208783328) fino alle"))
+        val notificaCambio = nm.getNotification(Notifiche.ID_CAMBIO)
+        assertNotNull(notificaCambio)
+        assertTrue(notificaCambio.extras.getString("android.title")!!.startsWith("Deviazione attiva → BINJAKU (3208783328) fino alle"))
 
         // 2. Stesso numero → nessun nuovo codice
         c.motore.applica(forzata = false)
@@ -109,7 +136,20 @@ class MotoreTest {
         c.motore.esitoProvaChiamata(true)
         assertEquals(StatoDeviazione.CONFERMATA, c.impostazioni.statoOra().stato)
 
-        // 5. Disattiva: automatismo sospeso, nessun numero attivo
+        // 5. Cambio manuale: NUCERA copre la prossima ora → la deviazione passa a lei
+        val cambio = Turno(inizio = adesso - 60_000, fine = adesso + ora, nome = "NUCERA FILIPPO", codice = "M", mese = "x", manuale = true)
+        val idCambio = c.db.turni().inserisciUno(cambio)
+        assertTrue(c.motore.serveRiapplicare())
+        c.motore.applica(forzata = false)
+        assertEquals("3392830941", c.impostazioni.statoOra().numero)
+        assertEquals(adesso + ora, c.motore.situazione().fineBlocco)
+        // Annullato il cambio, torna BINJAKU
+        c.db.turni().elimina(cambio.copy(id = idCambio))
+        assertTrue(c.motore.serveRiapplicare())
+        c.motore.applica(forzata = false)
+        assertEquals("3208783328", c.impostazioni.statoOra().numero)
+
+        // 6. Disattiva: automatismo sospeso, nessun numero attivo
         c.motore.disattiva()
         val dopo = c.impostazioni.statoOra()
         assertEquals(StatoDeviazione.DISATTIVATA, dopo.stato)

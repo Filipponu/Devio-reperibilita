@@ -22,6 +22,8 @@ data class Anteprima(
     val analisi: Analisi,
     /** Nomi dei turni futuri che non sono in rubrica. */
     val nomiSconosciuti: List<String>,
+    /** Cambi manuali futuri nei mesi che verranno reimportati. */
+    val cambiManuali: List<Turno> = emptyList(),
 ) {
     val niente: Boolean get() = turniDaSalvare.isEmpty()
 }
@@ -32,14 +34,15 @@ object PreparaAnteprima {
         val daImportare = mesi.filter { it.daImportare }
         val chiavi = daImportare.mapNotNull { it.foglio.mese?.toString() }.distinct()
         val turni = daImportare.flatMap { it.foglio.turni }.sortedBy { it.inizio }
-        val unione = esistenti.filter { it.mese !in chiavi } + turni
+        val unione = esistenti.filter { it.manuale || it.mese !in chiavi } + turni
         return Anteprima(
             nomeFile = nomeFile,
             mesi = mesi,
             turniDaSalvare = turni,
             mesiDaSostituire = chiavi,
-            analisi = Validatore.analizza(unione, ora),
+            analisi = Validatore.analizzaConManuali(unione, ora),
             nomiSconosciuti = sconosciuti(turni, colleghi, ora),
+            cambiManuali = esistenti.filter { it.manuale && it.mese in chiavi && it.fine > ora }.sortedBy { it.inizio },
         )
     }
 

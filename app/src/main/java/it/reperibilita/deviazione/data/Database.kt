@@ -10,6 +10,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Transaction
 import androidx.room.Upsert
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
@@ -21,8 +22,12 @@ interface TurniDao {
     @Query("SELECT * FROM turni ORDER BY inizio, id")
     suspend fun tutti(): List<Turno>
 
-    @Query("DELETE FROM turni WHERE mese IN (:mesi)")
-    suspend fun eliminaMesi(mesi: List<String>)
+    /** Turni dell'Excel dei mesi indicati (i cambi manuali restano). */
+    @Query("DELETE FROM turni WHERE mese IN (:mesi) AND manuale = 0")
+    suspend fun eliminaMesiExcel(mesi: List<String>)
+
+    @Query("DELETE FROM turni WHERE mese IN (:mesi) AND manuale = 1")
+    suspend fun eliminaManualiDeiMesi(mesi: List<String>)
 
     @Query("DELETE FROM turni WHERE fine < :prima")
     suspend fun eliminaPrimaDi(prima: Long)
@@ -30,10 +35,20 @@ interface TurniDao {
     @Insert
     suspend fun inserisci(turni: List<Turno>)
 
-    /** Sostituisce interamente i mesi importati, lasciando intatti gli altri. */
+    @Insert
+    suspend fun inserisciUno(turno: Turno): Long
+
+    @Delete
+    suspend fun elimina(turno: Turno)
+
+    /**
+     * Sostituisce i turni Excel dei mesi importati, lasciando intatti gli altri mesi.
+     * I cambi manuali restano, a meno che [eliminaManuali] sia true.
+     */
     @Transaction
-    suspend fun sostituisciMesi(mesi: List<String>, turni: List<Turno>) {
-        eliminaMesi(mesi)
+    suspend fun sostituisciMesi(mesi: List<String>, turni: List<Turno>, eliminaManuali: Boolean = false) {
+        eliminaMesiExcel(mesi)
+        if (eliminaManuali) eliminaManualiDeiMesi(mesi)
         inserisci(turni)
     }
 }
@@ -65,7 +80,7 @@ interface RegistroDao {
     suspend fun eliminaPrimaDi(prima: Long)
 }
 
-@Database(entities = [Turno::class, Collega::class, EventoRegistro::class], version = 1, exportSchema = false)
+@Database(entities = [Turno::class, Collega::class, EventoRegistro::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun turni(): TurniDao
     abstract fun colleghi(): ColleghiDao
@@ -81,8 +96,16 @@ abstract class AppDatabase : RoomDatabase() {
             Collega(cognome = "NUCERA", nome = "Filippo", telefono = "3392830941"),
         )
 
+        /** Versione 2: cambi turno manuali. */
+        val MIGRAZIONE_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE turni ADD COLUMN manuale INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun crea(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "deviazione.db")
+                .addMigrations(MIGRAZIONE_1_2)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         RUBRICA_INIZIALE.forEach { c ->
