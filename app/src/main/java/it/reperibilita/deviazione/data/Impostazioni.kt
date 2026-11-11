@@ -38,6 +38,8 @@ data class Preferenze(
     val automatico: Boolean,
     val allarmeSenzaConferma: Boolean,
     val prefissoInternazionale: Boolean,
+    /** true = suono d'allarme dell'app, false = suoneria della sveglia del telefono. */
+    val suonoApp: Boolean = true,
 )
 
 private val Context.archivio by preferencesDataStore(name = "impostazioni")
@@ -50,6 +52,7 @@ class Impostazioni(private val context: Context) {
         val automatico = booleanPreferencesKey("automatico")
         val allarmeSenzaConferma = booleanPreferencesKey("allarme_senza_conferma")
         val prefisso = booleanPreferencesKey("prefisso_internazionale")
+        val suonoApp = booleanPreferencesKey("suono_app")
 
         val numero = stringPreferencesKey("stato_numero")
         val nome = stringPreferencesKey("stato_nome")
@@ -70,6 +73,7 @@ class Impostazioni(private val context: Context) {
         automatico = p[K.automatico] ?: true,
         allarmeSenzaConferma = p[K.allarmeSenzaConferma] ?: true,
         prefissoInternazionale = p[K.prefisso] ?: false,
+        suonoApp = p[K.suonoApp] ?: true,
     )
 
     private fun statoDa(p: Preferences) = Stato(
@@ -101,6 +105,7 @@ class Impostazioni(private val context: Context) {
     suspend fun impostaAutomatico(attivo: Boolean) = modifica { it[K.automatico] = attivo }
     suspend fun impostaAllarmeSenzaConferma(attivo: Boolean) = modifica { it[K.allarmeSenzaConferma] = attivo }
     suspend fun impostaPrefisso(attivo: Boolean) = modifica { it[K.prefisso] = attivo }
+    suspend fun impostaSuonoApp(attivo: Boolean) = modifica { it[K.suonoApp] = attivo }
     suspend fun impostaAllarmeAttivo(attivo: Boolean) = modifica { it[K.allarmeAttivo] = attivo }
     suspend fun impostaAvvisoSenzaTurno(quando: Long) = modifica { it[K.avvisoSenzaTurno] = quando }
 

@@ -155,7 +155,8 @@ La card mostra chi è di turno (nome, iniziali, numero), da quando e fino a quan
 - Errore (alta priorità, con suono): "ATTENZIONE: deviazione NON riuscita" con il pulsante **Riprova**.
 
 **Allarme**
-- Schermata rossa a tutto schermo, suono forte in loop sul canale *sveglia* (suona anche in silenzioso e con Non disturbare) e vibrazione continua.
+- Schermata rossa a tutto schermo, vibrazione continua e suono forte in loop sul canale *sveglia*, che suona anche in silenzioso e con Non disturbare.
+- Il suono è quello dell'app: bip rapidi a 2,5–3 kHz, sempre uguali e riconoscibili. Nelle Opzioni puoi scegliere invece la suoneria della sveglia del telefono.
 - Pulsanti **Riprova deviazione** e **Ho visto, spegni**.
 - Se non lo spegni, si ripete **ogni 5 minuti** finché la deviazione non risulta riuscita.
 

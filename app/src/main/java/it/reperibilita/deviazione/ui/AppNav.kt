@@ -157,6 +157,7 @@ fun AppNav(vm: AppViewModel) {
                     onAutomatico = { vm.impostaAutomatico(it) },
                     onAllarmeSenzaConferma = { vm.impostaAllarmeSenzaConferma(it) },
                     onPrefisso = { vm.impostaPrefisso(it) },
+                    onSuonoApp = { vm.impostaSuonoApp(it) },
                     onProvaDeviazione = { prova = true },
                     onProvaAllarme = vm::provaAllarme,
                 )

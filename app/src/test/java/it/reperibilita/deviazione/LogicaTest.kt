@@ -203,6 +203,19 @@ class LogicaTest {
     }
 
     @Test
+    fun suonoAllarmeDellApp() {
+        val file = java.io.File("src/main/res/raw/allarme.wav")
+        javax.sound.sampled.AudioSystem.getAudioInputStream(file).use { audio ->
+            val f = audio.format
+            assertEquals(44100f, f.sampleRate)
+            assertEquals(1, f.channels)
+            assertEquals(16, f.sampleSizeInBits)
+            val secondi = audio.frameLength / f.frameRate
+            assertTrue("durata $secondi", secondi in 0.8f..1.2f)
+        }
+    }
+
+    @Test
     fun risposteOperatore() {
         val attiva = InterpreteRisposta.stato("Inoltro chiamate\nVoce: +393392830941")
         assertTrue(attiva is StatoOperatore.Attiva)

@@ -70,6 +70,7 @@ fun SchermataImpostazioni(
     onAutomatico: (Boolean) -> Unit,
     onAllarmeSenzaConferma: (Boolean) -> Unit,
     onPrefisso: (Boolean) -> Unit,
+    onSuonoApp: (Boolean) -> Unit,
     onProvaDeviazione: () -> Unit,
     onProvaAllarme: () -> Unit,
 ) {
@@ -168,6 +169,16 @@ fun SchermataImpostazioni(
                     "Usa il prefisso +39 nel codice",
                     "Attivalo solo se l'operatore rifiuta il numero senza prefisso.",
                     preferenze?.prefissoInternazionale ?: false, onPrefisso,
+                )
+            }
+
+            item { TitoloSezione("Allarme") }
+            item {
+                Interruttore(
+                    "Usa il suono di allarme dell'app",
+                    "Bip rapidi e forti, sempre uguali. Se lo disattivi suona la suoneria della sveglia del telefono. " +
+                        "In entrambi i casi suona anche in silenzioso e con Non disturbare.",
+                    preferenze?.suonoApp ?: true, onSuonoApp,
                 )
             }
 

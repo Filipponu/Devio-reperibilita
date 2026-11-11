@@ -19,6 +19,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
+import it.reperibilita.deviazione.R
 import it.reperibilita.deviazione.contenitore
 import it.reperibilita.deviazione.notifiche.Notifiche
 import kotlinx.coroutines.CoroutineScope
@@ -84,6 +85,7 @@ class AllarmeService : Service() {
     private var vibratore: Vibrator? = null
     private var volumeOriginale: Int? = null
     private var scadenza: Job? = null
+    private var suonoJob: Job? = null
     private var verifica: Job? = null
     private var wakeLock: PowerManager.WakeLock? = null
 
@@ -126,9 +128,13 @@ class AllarmeService : Service() {
                 .apply { acquire(DURATA_SUONO_MS + 30_000L) }
         }
         if (!_inSuono.value) {
-            suona()
-            vibra()
             _inSuono.value = true
+            vibra()
+            val c = contenitore
+            suonoJob = scope.launch {
+                val suonoApp = runCatching { c.impostazioni.preferenzeOra().suonoApp }.getOrDefault(true)
+                if (_inSuono.value) suona(suonoApp)
+            }
         }
         scadenza?.cancel()
         scadenza = scope.launch {
@@ -156,17 +162,23 @@ class AllarmeService : Service() {
         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
         .build()
 
-    private fun suona() {
+    /**
+     * Suono in loop sul canale allarme: per primo quello dell'app (res/raw/allarme.wav) oppure,
+     * se scelto nelle Opzioni, la suoneria della sveglia del telefono. L'altro fa da riserva.
+     */
+    private fun suona(suonoApp: Boolean) {
         val audio = getSystemService(AudioManager::class.java)
         runCatching {
             volumeOriginale = audio.getStreamVolume(AudioManager.STREAM_ALARM)
             audio.setStreamVolume(AudioManager.STREAM_ALARM, audio.getStreamMaxVolume(AudioManager.STREAM_ALARM), 0)
         }
-        val suoni: List<Uri?> = listOf(
+        val dellApp = Uri.parse("android.resource://$packageName/${R.raw.allarme}")
+        val delTelefono: List<Uri?> = listOf(
             RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_ALARM),
             RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
             RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE),
         )
+        val suoni = if (suonoApp) listOf(dellApp) + delTelefono else delTelefono + dellApp
         for (uri in suoni.filterNotNull()) {
             val mp = runCatching {
                 MediaPlayer().apply {
@@ -212,6 +224,8 @@ class AllarmeService : Service() {
     }
 
     private fun zittisci() {
+        suonoJob?.cancel()
+        suonoJob = null
         runCatching { player?.stop() }
         runCatching { player?.release() }
         player = null

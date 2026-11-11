@@ -173,6 +173,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
     fun impostaAllarmeSenzaConferma(attivo: Boolean) = viewModelScope.launch { c.impostazioni.impostaAllarmeSenzaConferma(attivo) }
     fun impostaPrefisso(attivo: Boolean) = viewModelScope.launch { c.impostazioni.impostaPrefisso(attivo) }
+    fun impostaSuonoApp(attivo: Boolean) = viewModelScope.launch { c.impostazioni.impostaSuonoApp(attivo) }
     fun simDisponibili(): List<Sim> = c.telefonia.simDisponibili()
     fun puoProgrammareEsatti(): Boolean = c.pianificatore.puoProgrammareEsatti()
 
