@@ -180,7 +180,11 @@ class Motore(
                     pianificatore.annullaControlloConferma()
                     registra(TipoEvento.ATTIVAZIONE, Esito.CONFERMATA, numero, nome, "Confermata dall'operatore")
                     notifiche.cambio(collega, fine, confermata = true, dettaglio = null)
-                    avvisaSms("Deviazione reperibilità attiva verso ${collega.cognome} (${Nomi.formattaTelefono(numero)}) fino alle ${Formati.ora(fine)}. Confermata dall'operatore.")
+                    avvisaSms(
+                        "Reperibilità UCDOM (numero deviato ${pref.numeroReperibilita}): deviazione delle chiamate ATTIVA verso " +
+                            "${collega.cognome} ${Nomi.capitalizza(collega.nome)} (${Nomi.formattaTelefono(numero)}), di turno fino a " +
+                            "${Formati.giornoOra(fine)}. Confermata dall'operatore alle ${Formati.ora(adesso())}.",
+                    )
                     fermaAllarme(daUtente = false)
                 }
                 is EsitoVerifica.NonVerificabile -> {
@@ -189,7 +193,11 @@ class Motore(
                     impostazioni.impostaStato(StatoDeviazione.IN_ATTESA, motivo)
                     registra(TipoEvento.ATTIVAZIONE, Esito.NON_VERIFICATA, numero, nome, "Inviata, conferma non arrivata: $motivo")
                     notifiche.cambio(collega, fine, confermata = false, dettaglio = motivo)
-                    avvisaSms("Deviazione reperibilità verso ${collega.cognome} (${Nomi.formattaTelefono(numero)}) fino alle ${Formati.ora(fine)}. Inviata, in attesa di conferma dell'operatore.")
+                    avvisaSms(
+                        "Reperibilità UCDOM (numero deviato ${pref.numeroReperibilita}): deviazione delle chiamate impostata verso " +
+                            "${collega.cognome} ${Nomi.capitalizza(collega.nome)} (${Nomi.formattaTelefono(numero)}), di turno fino a " +
+                            "${Formati.giornoOra(fine)}. In attesa della conferma dell'operatore: controlla con *#21# o con una chiamata di prova.",
+                    )
                 }
                 is EsitoVerifica.Diversa -> fallimento(numero, nome, v.motivo)
             }
@@ -228,7 +236,10 @@ class Motore(
 
     private suspend fun fallimento(numero: String?, nome: String?, motivo: String) {
         impostazioni.impostaStato(StatoDeviazione.ERRORE, motivo)
-        avvisaSms("ATTENZIONE: deviazione reperibilità verso ${nome ?: "il turno"} NON riuscita. $motivo")
+        avvisaSms(
+            "ATTENZIONE Reperibilità UCDOM: la deviazione delle chiamate verso ${nome ?: "il collega di turno"} NON è riuscita. " +
+                "$motivo. Apri l'app e premi Riprova, oppure imposta la deviazione a mano sul telefono.",
+        )
         pianificatore.annullaControlloConferma()
         registra(TipoEvento.ATTIVAZIONE, Esito.ERRORE, numero, nome, motivo)
         notifiche.errore(motivo)

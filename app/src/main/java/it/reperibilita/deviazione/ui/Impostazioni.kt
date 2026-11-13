@@ -192,8 +192,8 @@ fun SchermataImpostazioni(
             item {
                 Interruttore(
                     "SMS a ogni cambio di deviazione",
-                    "A ogni cambio dell'operatore di deviazione ti arriva un SMS di conferma (chi è di turno, numero, esito). " +
-                        "L'SMS parte dalla SIM di reperibilità, quindi ha un costo secondo il tuo piano.",
+                    "Attivo di serie. A ogni cambio dell'operatore ti arriva un SMS con chi è di turno, numero, orari ed esito. " +
+                        "Parte dalla SIM di reperibilità, quindi ha un costo secondo il piano della SIM.",
                     preferenze?.smsCambio ?: false,
                 ) { attivo ->
                     if (attivo && !Configurazione.concesso(context, Manifest.permission.SEND_SMS)) {

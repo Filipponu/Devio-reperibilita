@@ -149,9 +149,10 @@ La card mostra chi è di turno (nome, iniziali, numero), da quando e fino a quan
 
 **Altre schede**: *Turni* (timeline con ☀️ giorno, 🌙 notte, **24** ore, ⇄ cambi manuali), *Rubrica* (aggiungi, modifica, elimina, importa dai contatti), *Registro* (ogni deviazione con data, ora, numero ed esito).
 
-**SMS di conferma** (opzionale)
-- In **Opzioni → Avvisi SMS** puoi attivare un SMS a ogni cambio dell'operatore di deviazione, verso il numero che indichi (di solito il tuo): "Deviazione reperibilità attiva verso COGNOME (numero) fino alle HH:MM. Confermata dall'operatore." In caso di errore arriva un SMS di avviso.
-- L'SMS parte dalla SIM di reperibilità, quindi ha un costo secondo il piano della SIM. Richiede il permesso SMS.
+**SMS di conferma** (attivo di serie)
+- A ogni cambio dell'operatore di deviazione arriva un SMS al tuo numero con tutti i dettagli (chi è di turno, numero, "di turno fino a…", esito della conferma dell'operatore). In caso di errore arriva un SMS di avviso con cosa fare.
+- È già attivo: all'avvio l'app chiede una volta il permesso SMS, poi funziona da solo. In **Opzioni → Avvisi SMS** puoi cambiare il numero di destinazione o disattivarlo.
+- L'SMS parte dalla SIM di reperibilità, quindi ha un costo secondo il piano della SIM; il messaggio è lungo (più di 160 caratteri) e viene inviato come SMS concatenato.
 
 **Notifiche**
 - Fissa e silenziosa: chi è di turno e fino a quando.

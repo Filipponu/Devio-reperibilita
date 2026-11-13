@@ -34,6 +34,7 @@ object Configurazione {
     fun permessiDaChiedere(context: Context): Array<String> = buildList {
         add(Manifest.permission.CALL_PHONE)
         add(Manifest.permission.READ_PHONE_STATE)
+        add(Manifest.permission.SEND_SMS)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
     }.filterNot { concesso(context, it) }.toTypedArray()
 

@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 const val NUMERO_REPERIBILITA_PREDEFINITO = "3929019431"
+const val NUMERO_AVVISI_PREDEFINITO = "3392830941"
 
 enum class StatoDeviazione { NESSUNA, IN_CORSO, IN_ATTESA, CONFERMATA, ERRORE, DISATTIVATA }
 
@@ -40,10 +41,10 @@ data class Preferenze(
     val prefissoInternazionale: Boolean,
     /** true = suono d'allarme dell'app, false = suoneria della sveglia del telefono. */
     val suonoApp: Boolean = true,
-    /** Invia un SMS di conferma a ogni cambio dell'operatore di deviazione. */
-    val smsCambio: Boolean = false,
+    /** Invia un SMS di conferma a ogni cambio dell'operatore di deviazione (attivo di serie). */
+    val smsCambio: Boolean = true,
     /** Numero a cui mandare gli SMS di conferma (di solito il tuo). */
-    val numeroAvvisi: String = "",
+    val numeroAvvisi: String = NUMERO_AVVISI_PREDEFINITO,
 )
 
 private val Context.archivio by preferencesDataStore(name = "impostazioni")
@@ -80,8 +81,8 @@ class Impostazioni(private val context: Context) {
         allarmeSenzaConferma = p[K.allarmeSenzaConferma] ?: true,
         prefissoInternazionale = p[K.prefisso] ?: false,
         suonoApp = p[K.suonoApp] ?: true,
-        smsCambio = p[K.smsCambio] ?: false,
-        numeroAvvisi = p[K.numeroAvvisi] ?: "",
+        smsCambio = p[K.smsCambio] ?: true,
+        numeroAvvisi = p[K.numeroAvvisi] ?: NUMERO_AVVISI_PREDEFINITO,
     )
 
     private fun statoDa(p: Preferences) = Stato(
