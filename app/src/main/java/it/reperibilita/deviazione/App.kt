@@ -7,6 +7,7 @@ import it.reperibilita.deviazione.data.Impostazioni
 import it.reperibilita.deviazione.notifiche.Notifiche
 import it.reperibilita.deviazione.servizio.Motore
 import it.reperibilita.deviazione.servizio.Pianificatore
+import it.reperibilita.deviazione.telefonia.Sms
 import it.reperibilita.deviazione.telefonia.Telefonia
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,9 +19,10 @@ class Contenitore(context: Context) {
     val db = AppDatabase.crea(context)
     val impostazioni = Impostazioni(context)
     val telefonia = Telefonia(context)
+    val sms = Sms(context)
     val notifiche = Notifiche(context)
     val pianificatore = Pianificatore(context, db)
-    val motore = Motore(context, db, impostazioni, telefonia, pianificatore, notifiche)
+    val motore = Motore(context, db, impostazioni, telefonia, sms, pianificatore, notifiche)
 }
 
 class App : Application() {

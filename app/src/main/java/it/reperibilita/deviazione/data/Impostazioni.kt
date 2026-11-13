@@ -40,6 +40,10 @@ data class Preferenze(
     val prefissoInternazionale: Boolean,
     /** true = suono d'allarme dell'app, false = suoneria della sveglia del telefono. */
     val suonoApp: Boolean = true,
+    /** Invia un SMS di conferma a ogni cambio dell'operatore di deviazione. */
+    val smsCambio: Boolean = false,
+    /** Numero a cui mandare gli SMS di conferma (di solito il tuo). */
+    val numeroAvvisi: String = "",
 )
 
 private val Context.archivio by preferencesDataStore(name = "impostazioni")
@@ -53,6 +57,8 @@ class Impostazioni(private val context: Context) {
         val allarmeSenzaConferma = booleanPreferencesKey("allarme_senza_conferma")
         val prefisso = booleanPreferencesKey("prefisso_internazionale")
         val suonoApp = booleanPreferencesKey("suono_app")
+        val smsCambio = booleanPreferencesKey("sms_cambio")
+        val numeroAvvisi = stringPreferencesKey("numero_avvisi")
 
         val numero = stringPreferencesKey("stato_numero")
         val nome = stringPreferencesKey("stato_nome")
@@ -74,6 +80,8 @@ class Impostazioni(private val context: Context) {
         allarmeSenzaConferma = p[K.allarmeSenzaConferma] ?: true,
         prefissoInternazionale = p[K.prefisso] ?: false,
         suonoApp = p[K.suonoApp] ?: true,
+        smsCambio = p[K.smsCambio] ?: false,
+        numeroAvvisi = p[K.numeroAvvisi] ?: "",
     )
 
     private fun statoDa(p: Preferences) = Stato(
@@ -106,6 +114,8 @@ class Impostazioni(private val context: Context) {
     suspend fun impostaAllarmeSenzaConferma(attivo: Boolean) = modifica { it[K.allarmeSenzaConferma] = attivo }
     suspend fun impostaPrefisso(attivo: Boolean) = modifica { it[K.prefisso] = attivo }
     suspend fun impostaSuonoApp(attivo: Boolean) = modifica { it[K.suonoApp] = attivo }
+    suspend fun impostaSmsCambio(attivo: Boolean) = modifica { it[K.smsCambio] = attivo }
+    suspend fun impostaNumeroAvvisi(numero: String) = modifica { it[K.numeroAvvisi] = numero }
     suspend fun impostaAllarmeAttivo(attivo: Boolean) = modifica { it[K.allarmeAttivo] = attivo }
     suspend fun impostaAvvisoSenzaTurno(quando: Long) = modifica { it[K.avvisoSenzaTurno] = quando }
 

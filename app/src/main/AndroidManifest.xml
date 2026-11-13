@@ -7,6 +7,8 @@
     <!-- Codici di deviazione (sendUssdRequest / ACTION_CALL) e scelta della SIM -->
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- SMS di conferma a ogni cambio di deviazione (opzionale) -->
+    <uses-permission android:name="android.permission.SEND_SMS" />
     <!-- Notifiche e allarme -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />

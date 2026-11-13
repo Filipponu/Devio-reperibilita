@@ -16,6 +16,7 @@ import it.reperibilita.deviazione.dominio.Situazione
 import it.reperibilita.deviazione.notifiche.Notifiche
 import it.reperibilita.deviazione.telefonia.InterpreteRisposta
 import it.reperibilita.deviazione.telefonia.RisultatoMmi
+import it.reperibilita.deviazione.telefonia.Sms
 import it.reperibilita.deviazione.telefonia.StatoOperatore
 import it.reperibilita.deviazione.telefonia.Telefonia
 import it.reperibilita.deviazione.widget.WidgetStato
@@ -33,6 +34,7 @@ class Motore(
     private val db: AppDatabase,
     private val impostazioni: Impostazioni,
     private val telefonia: Telefonia,
+    private val sms: Sms,
     private val pianificatore: Pianificatore,
     private val notifiche: Notifiche,
 ) {
@@ -139,6 +141,14 @@ class Motore(
         is RisultatoMmi.InviatoSenzaRisposta -> "Codice inviato con ${r.metodo}"
     }
 
+    /** SMS di conferma al numero scelto, se l'opzione è attiva. */
+    private suspend fun avvisaSms(testo: String) {
+        val pref = impostazioni.preferenzeOra()
+        if (!pref.smsCambio || pref.numeroAvvisi.isBlank()) return
+        val inviato = sms.invia(pref.numeroAvvisi, testo, pref.simSubId)
+        if (inviato) registra(TipoEvento.INFO, Esito.INFO, pref.numeroAvvisi, null, "SMS di conferma inviato")
+    }
+
     private suspend fun attiva(collega: Collega, fine: Long) {
         val pref = impostazioni.preferenzeOra()
         val numero = collega.telefono
@@ -170,6 +180,7 @@ class Motore(
                     pianificatore.annullaControlloConferma()
                     registra(TipoEvento.ATTIVAZIONE, Esito.CONFERMATA, numero, nome, "Confermata dall'operatore")
                     notifiche.cambio(collega, fine, confermata = true, dettaglio = null)
+                    avvisaSms("Deviazione reperibilità attiva verso ${collega.cognome} (${Nomi.formattaTelefono(numero)}) fino alle ${Formati.ora(fine)}. Confermata dall'operatore.")
                     fermaAllarme(daUtente = false)
                 }
                 is EsitoVerifica.NonVerificabile -> {
@@ -178,6 +189,7 @@ class Motore(
                     impostazioni.impostaStato(StatoDeviazione.IN_ATTESA, motivo)
                     registra(TipoEvento.ATTIVAZIONE, Esito.NON_VERIFICATA, numero, nome, "Inviata, conferma non arrivata: $motivo")
                     notifiche.cambio(collega, fine, confermata = false, dettaglio = motivo)
+                    avvisaSms("Deviazione reperibilità verso ${collega.cognome} (${Nomi.formattaTelefono(numero)}) fino alle ${Formati.ora(fine)}. Inviata, in attesa di conferma dell'operatore.")
                 }
                 is EsitoVerifica.Diversa -> fallimento(numero, nome, v.motivo)
             }
@@ -216,6 +228,7 @@ class Motore(
 
     private suspend fun fallimento(numero: String?, nome: String?, motivo: String) {
         impostazioni.impostaStato(StatoDeviazione.ERRORE, motivo)
+        avvisaSms("ATTENZIONE: deviazione reperibilità verso ${nome ?: "il turno"} NON riuscita. $motivo")
         pianificatore.annullaControlloConferma()
         registra(TipoEvento.ATTIVAZIONE, Esito.ERRORE, numero, nome, motivo)
         notifiche.errore(motivo)

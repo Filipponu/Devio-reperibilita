@@ -71,6 +71,8 @@ fun SchermataImpostazioni(
     onAllarmeSenzaConferma: (Boolean) -> Unit,
     onPrefisso: (Boolean) -> Unit,
     onSuonoApp: (Boolean) -> Unit,
+    onSmsCambio: (Boolean) -> Unit,
+    onNumeroAvvisi: (String) -> Unit,
     onProvaDeviazione: () -> Unit,
     onProvaAllarme: () -> Unit,
 ) {
@@ -84,6 +86,10 @@ fun SchermataImpostazioni(
         if (it.values.any { ok -> !ok }) Configurazione.apriDettagliApp(context)
     }
     var modificaNumero by remember { mutableStateOf(false) }
+    var modificaNumeroAvvisi by remember { mutableStateOf(false) }
+    val permessoSms = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { concesso ->
+        if (concesso) onSmsCambio(true) else onSmsCambio(false)
+    }
 
     Scaffold(topBar = { TopAppBar(title = { Text("Impostazioni") }) }) { padding ->
         LazyColumn(
@@ -182,6 +188,36 @@ fun SchermataImpostazioni(
                 )
             }
 
+            item { TitoloSezione("Avvisi SMS") }
+            item {
+                Interruttore(
+                    "SMS a ogni cambio di deviazione",
+                    "A ogni cambio dell'operatore di deviazione ti arriva un SMS di conferma (chi è di turno, numero, esito). " +
+                        "L'SMS parte dalla SIM di reperibilità, quindi ha un costo secondo il tuo piano.",
+                    preferenze?.smsCambio ?: false,
+                ) { attivo ->
+                    if (attivo && !Configurazione.concesso(context, Manifest.permission.SEND_SMS)) {
+                        permessoSms.launch(Manifest.permission.SEND_SMS)
+                    } else {
+                        onSmsCambio(attivo)
+                    }
+                }
+            }
+            if (preferenze?.smsCambio == true) {
+                item {
+                    ListItem(
+                        headlineContent = { Text("Numero per gli SMS") },
+                        supportingContent = {
+                            Text(preferenze.numeroAvvisi.takeIf { it.isNotBlank() }?.let { Nomi.formattaTelefono(it) }
+                                ?: "Da impostare: tocca per inserire il tuo numero")
+                        },
+                        trailingContent = { IconButton(onClick = { modificaNumeroAvvisi = true }) { Icon(Icons.Rounded.Edit, "Modifica") } },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.selectable(selected = false, onClick = { modificaNumeroAvvisi = true }),
+                    )
+                }
+            }
+
             item { TitoloSezione("Prove") }
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
@@ -227,6 +263,25 @@ fun SchermataImpostazioni(
                 Button(enabled = testo.count(Char::isDigit) >= 8, onClick = { onNumero(testo); modificaNumero = false }) { Text("Salva") }
             },
             dismissButton = { TextButton(onClick = { modificaNumero = false }) { Text("Annulla") } },
+        )
+    }
+
+    if (modificaNumeroAvvisi) {
+        var testo by remember { mutableStateOf(preferenze?.numeroAvvisi.orEmpty()) }
+        AlertDialog(
+            onDismissRequest = { modificaNumeroAvvisi = false },
+            title = { Text("Numero per gli SMS") },
+            text = {
+                Column {
+                    Text("Il numero a cui mandare la conferma a ogni cambio (di solito il tuo).", style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.size(8.dp))
+                    OutlinedTextField(testo, { testo = it }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone))
+                }
+            },
+            confirmButton = {
+                Button(enabled = testo.count(Char::isDigit) >= 8, onClick = { onNumeroAvvisi(testo); modificaNumeroAvvisi = false }) { Text("Salva") }
+            },
+            dismissButton = { TextButton(onClick = { modificaNumeroAvvisi = false }) { Text("Annulla") } },
         )
     }
 }

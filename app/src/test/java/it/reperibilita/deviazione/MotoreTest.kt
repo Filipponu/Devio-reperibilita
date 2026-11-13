@@ -75,7 +75,7 @@ class MotoreTest {
     fun flussoCompleto() = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         val app = ApplicationProvider.getApplicationContext<App>()
-        shadowOf(app).grantPermissions(Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE, Manifest.permission.POST_NOTIFICATIONS)
+        shadowOf(app).grantPermissions(Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE, Manifest.permission.POST_NOTIFICATIONS, Manifest.permission.SEND_SMS)
         val c = app.contenitore
         withContext(Dispatchers.IO) { c.db.clearAllTables() }
         AppDatabase.RUBRICA_INIZIALE.forEach { c.db.colleghi().salva(it) }
@@ -96,6 +96,10 @@ class MotoreTest {
         assertEquals("CAVALLARI", s.prossimoCollega?.cognome)
         assertTrue(c.motore.serveRiapplicare())
 
+        // SMS di conferma attivo verso il mio numero
+        c.impostazioni.impostaSmsCambio(true)
+        c.impostazioni.impostaNumeroAvvisi("3392830941")
+
         // 1. Applica: il codice parte, la conferma dell'operatore non arriva → in attesa
         c.motore.applica(forzata = false)
         val st = c.impostazioni.statoOra()
@@ -106,6 +110,15 @@ class MotoreTest {
         assertEquals(1, registro.count { it.tipo == TipoEvento.ATTIVAZIONE })
         assertEquals(Esito.NON_VERIFICATA, registro.first { it.tipo == TipoEvento.ATTIVAZIONE }.esito)
         assertFalse(c.motore.serveRiapplicare())
+
+        // SMS di conferma arrivato al mio numero (messaggio lungo → multiparte)
+        val shadowSms = shadowOf(app.getSystemService(android.telephony.SmsManager::class.java))
+        val singolo = shadowSms.lastSentTextMessageParams
+        val multi = shadowSms.lastSentMultipartTextMessageParams
+        val dest = singolo?.destinationAddress ?: multi?.destinationAddress
+        val testoSms = singolo?.text ?: multi?.parts?.joinToString("")
+        assertEquals("3392830941", dest)
+        assertTrue("SMS: $testoSms", testoSms?.contains("BINJAKU") == true)
 
         // Allarmi: prossimo cambio turno + controllo della conferma a +2 minuti
         val allarmi = shadowOf(app.getSystemService(AlarmManager::class.java)).scheduledAlarms
