@@ -186,6 +186,12 @@ La card mostra chi è di turno (nome, iniziali, numero), da quando e fino a quan
 **La card resta arancione e dopo 2 minuti suona l'allarme, anche se la deviazione funziona.**
 Alcuni operatori o telefoni non restituiscono la risposta all'app, e allora si usa il metodo di riserva. Fai una **Prova deviazione**: se rispondi "Sì, è arrivata", lo stato diventa confermato. Se succede sempre, disattiva in Impostazioni *"Allarme se l'operatore non conferma"*: l'allarme suonerà solo in caso di errore vero.
 
+**La deviazione resta sul collega del turno precedente.**
+Alcuni operatori non sovrascrivono una deviazione già attiva. L'app ora, a ogni cambio, prima la azzera (`##21#`) e poi imposta il nuovo numero. Se vuoi forzare a mano: premi **Disattiva** e poi **Applica ora**.
+
+**La deviazione resta sul collega del turno precedente.**
+Alcuni operatori non sovrascrivono una deviazione già attiva. L'app, a ogni cambio, prima la azzera (`##21#`) e poi imposta il nuovo numero. Per forzare a mano: premi **Disattiva** e poi **Applica ora**.
+
 **L'operatore rifiuta il codice.**
 Prova ad attivare *"Usa il prefisso +39 nel codice"* nelle Impostazioni.
 

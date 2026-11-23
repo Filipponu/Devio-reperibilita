@@ -161,6 +161,12 @@ class Motore(
             aggiornaNotificheEWidget()
             pianificatore.programmaControlloConferma(tentativo)
 
+            // Per CAMBIARE una deviazione già attiva, alcuni operatori non la sovrascrivono:
+            // se mandi solo **21*nuovo# resta il numero precedente. Quindi prima azzeri (##21#),
+            // poi imposti il nuovo. L'azzeramento è "best effort": se fallisce si prova comunque a impostare.
+            telefonia.invia(Telefonia.DISATTIVA, pref.simSubId, riserva = false)
+            delay(3_000)
+
             val codice = Telefonia.codiceAttivazione(numero, pref.prefissoInternazionale)
             var r = telefonia.invia(codice, pref.simSubId, riserva = false)
             if (!inviatoBene(r)) {
